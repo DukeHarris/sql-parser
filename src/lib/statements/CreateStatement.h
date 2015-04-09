@@ -37,6 +37,12 @@ struct CreateStatement : SQLStatement {
 	enum CreateType {
 		kTable,
 		kTableFromTbl, // Hyrise file format
+		kIndex,
+	};
+
+	enum IndexType {
+		kDefaultIndex,
+		kGroupKeyIndex,
 	};
 
 	CreateStatement(CreateType type) :
@@ -44,8 +50,10 @@ struct CreateStatement : SQLStatement {
 		type(type),
 		if_not_exists(false),
 		columns(NULL),
+		index_columns(NULL),
 		file_path(NULL),
-		table_name(NULL) {};
+		table_name(NULL),
+		index_name(NULL) {};
 
 	virtual ~CreateStatement() {
 		delete columns;
@@ -54,15 +62,17 @@ struct CreateStatement : SQLStatement {
 	}
 
 	CreateType type;
+	IndexType index_type;
+
 	bool if_not_exists;
 
 	std::vector<ColumnDefinition*>* columns;
+	std::vector<char*>* index_columns;
 
 	const char* file_path;
 	const char* table_name;
+	const char* index_name;
 };
-
-
 
 } // namespace hsql
 #endif

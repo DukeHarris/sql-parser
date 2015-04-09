@@ -39,7 +39,7 @@
 %option warn
 %option case-insensitive
 %option prefix="hsql_"
-%option bison-locations 
+%option bison-locations
 /* %option nodefault */
 
 
@@ -58,13 +58,13 @@
 [ \t\n]+	/* skip whitespace */;
 
 
-
 DEALLOCATE	TOKEN(DEALLOCATE)
 PARAMETERS	TOKEN(PARAMETERS)
 INTERSECT	TOKEN(INTERSECT)
 TEMPORARY	TOKEN(TEMPORARY)
 TIMESTAMP	TOKEN(TIMESTAMP)
 DISTINCT	TOKEN(DISTINCT)
+GROUPKEY	TOKEN(GROUPKEY)
 NVARCHAR	TOKEN(NVARCHAR)
 RESTRICT	TOKEN(RESTRICT)
 TRUNCATE	TOKEN(TRUNCATE)

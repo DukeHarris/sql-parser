@@ -3,7 +3,7 @@
  * bison_parser.y
  * defines bison_parser.h
  * outputs bison_parser.c
- * 
+ *
  * Grammar File Spec: http://dinosaur.compilertools.net/bison/bison_6.html
  *
  */
@@ -41,7 +41,7 @@ int yyerror(YYLTYPE* llocp, SQLStatementList** result, yyscan_t scanner, const c
 
 // Specify code that is included in the generated .h and .c files
 %code requires {
-// %code requires block	
+// %code requires block
 #include "parser_typedef.h"
 
 // Auto update column and line number
@@ -142,21 +142,23 @@ int yyerror(YYLTYPE* llocp, SQLStatementList** result, yyscan_t scanner, const c
 %token <ival> INTVAL
 %token <uval> NOTEQUALS LESSEQ GREATEREQ
 
+
+/* Add new keywords to sql_keywords.txt and run keywordlist_generator.py; - Also add output to flex_lexer.l*/
 /* SQL Keywords */
 %token DEALLOCATE PARAMETERS INTERSECT TEMPORARY TIMESTAMP
-%token DISTINCT NVARCHAR RESTRICT TRUNCATE ANALYZE BETWEEN
-%token CASCADE COLUMNS CONTROL DEFAULT EXECUTE EXPLAIN
-%token HISTORY INTEGER NATURAL PREPARE PRIMARY SCHEMAS
-%token SPATIAL VIRTUAL BEFORE COLUMN CREATE DELETE DIRECT
-%token DOUBLE ESCAPE EXCEPT EXISTS GLOBAL HAVING IMPORT
-%token INSERT ISNULL OFFSET RENAME SCHEMA SELECT SORTED
-%token TABLES UNIQUE UNLOAD UPDATE VALUES AFTER ALTER CROSS
-%token DELTA GROUP INDEX INNER LIMIT LOCAL MERGE MINUS ORDER
-%token OUTER RIGHT TABLE UNION USING WHERE CALL DATE DESC
-%token DROP FILE FROM FULL HASH HINT INTO JOIN LEFT LIKE
-%token LOAD NULL PART PLAN SHOW TEXT TIME VIEW WITH ADD ALL
-%token AND ASC CSV FOR INT KEY NOT OFF SET TBL TOP AS BY IF
-%token IN IS OF ON OR TO
+%token DISTINCT GROUPKEY NVARCHAR RESTRICT TRUNCATE ANALYZE
+%token BETWEEN CASCADE COLUMNS CONTROL DEFAULT EXECUTE
+%token EXPLAIN HISTORY INTEGER NATURAL PREPARE PRIMARY
+%token SCHEMAS SPATIAL VIRTUAL BEFORE COLUMN CREATE DELETE
+%token DIRECT DOUBLE ESCAPE EXCEPT EXISTS GLOBAL HAVING
+%token IMPORT INSERT ISNULL OFFSET RENAME SCHEMA SELECT
+%token SORTED TABLES UNIQUE UNLOAD UPDATE VALUES AFTER ALTER
+%token CROSS DELTA GROUP INDEX INNER LIMIT LOCAL MERGE MINUS
+%token ORDER OUTER RIGHT TABLE UNION USING WHERE CALL DATE
+%token DESC DROP FILE FROM FULL HASH HINT INTO JOIN LEFT
+%token LIKE LOAD NULL PART PLAN SHOW TEXT TIME VIEW WITH ADD
+%token ALL AND ASC CSV FOR INT KEY NOT OFF SET TBL TOP AS BY
+%token IF IN IS OF ON OR TO
 
 
 /*********************************
@@ -168,14 +170,14 @@ int yyerror(YYLTYPE* llocp, SQLStatementList** result, yyscan_t scanner, const c
 %type <prep_stmt>	prepare_statement
 %type <select_stmt> select_statement select_with_paren select_no_paren select_clause
 %type <import_stmt> import_statement
-%type <create_stmt> create_statement
+%type <create_stmt> create_statement create_index_statement
 %type <insert_stmt> insert_statement
 %type <delete_stmt> delete_statement truncate_statement
 %type <update_stmt> update_statement
 %type <drop_stmt>	drop_statement
 %type <sval> 		table_name opt_alias alias file_path
 %type <bval> 		opt_not_exists opt_distinct
-%type <uval>		import_file_type opt_join_type column_type
+%type <uval>		import_file_type opt_join_type column_type opt_index_type
 %type <table> 		from_clause table_ref table_ref_atomic table_ref_name
 %type <table>		join_clause join_table table_ref_name_no_alias
 %type <expr> 		expr scalar_expr unary_expr binary_expr function_expr star_expr expr_alias placeholder_expr
@@ -325,6 +327,25 @@ create_statement:
 			$$->table_name = $4;
 			$$->columns = $6;
 		}
+	|	create_index_statement
+	;
+
+
+/* CREATE INDEX student_ix ON students (name) */
+/* CREATE GROUPKEY INDEX student_ix ON students (name, student_number) */
+create_index_statement:
+		CREATE opt_index_type INDEX IDENTIFIER ON table_name '(' ident_commalist ')' {
+			$$ = new CreateStatement(CreateStatement::kIndex);
+			$$->index_type = (CreateStatement::IndexType) $2;
+			$$->index_name = $4;
+			$$->table_name = $6;
+			$$->index_columns = $8;
+		}
+	;
+
+opt_index_type:
+		GROUPKEY { $$ = CreateStatement::kGroupKeyIndex;}
+	|	{ $$ = CreateStatement::kDefaultIndex; }
 	;
 
 opt_not_exists:
@@ -351,6 +372,8 @@ column_type:
 	|	TEXT { $$ = ColumnDefinition::TEXT; }
 	;
 
+
+
 /******************************
  * Drop Statement
  * DROP TABLE students;
@@ -364,6 +387,10 @@ drop_statement:
 		}
 	|	DEALLOCATE PREPARE IDENTIFIER {
 			$$ = new DropStatement(DropStatement::kPreparedStatement);
+			$$->name = $3;
+		}
+	|	DROP INDEX IDENTIFIER {
+			$$ = new DropStatement(DropStatement::kIndex);
 			$$->name = $3;
 		}
 	;
@@ -542,7 +569,7 @@ opt_limit:
 	;
 
 /******************************
- * Expressions 
+ * Expressions
  ******************************/
 expr_list:
 		expr_alias { $$ = new std::vector<Expr*>(); $$->push_back($1); }
@@ -647,7 +674,7 @@ placeholder_expr:
 
 
 /******************************
- * Table 
+ * Table
  ******************************/
 table_ref:
 		table_ref_atomic
@@ -702,7 +729,7 @@ table_name:
 	;
 
 
-alias:	
+alias:
 		AS IDENTIFIER { $$ = $2; }
 	|	IDENTIFIER
 	;
@@ -718,7 +745,7 @@ opt_alias:
 
 join_clause:
 		join_table opt_join_type JOIN join_table ON join_condition
-		{ 
+		{
 			$$ = new TableRef(kTableJoin);
 			$$->join = new JoinDefinition();
 			$$->join->type = (JoinType) $2;

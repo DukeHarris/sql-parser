@@ -11,6 +11,9 @@ with open("sql_keywords.txt", 'r') as fh:
 	#################
 	# Flex
 
+	print "==== Add to flex_lexer.l"
+
+
 	max_len = len(max(keywords, key=lambda x: len(x))) + 1
 	max_len = 4 * int(math.ceil(max_len / 4.0))
 
@@ -21,7 +24,7 @@ with open("sql_keywords.txt", 'r') as fh:
 		if len_diff % 4 != 0: num_tabs += 1
 
 		tabs = ''.join(['\t' for _ in range(num_tabs)])
-		print "%s%sTOKEN(%s)" % (keyword, tabs, keyword) 
+		print "%s%sTOKEN(%s)" % (keyword, tabs, keyword)
 
 	#
 	#################
@@ -29,6 +32,9 @@ with open("sql_keywords.txt", 'r') as fh:
 
 	#################
 	# Bison
+
+	print "==== Add to bison_parser.y"
+
 	line = "%token"
 	max_len = 60
 

@@ -45,6 +45,32 @@ TEST(CreateStatementTest) {
 	ASSERT_EQ(stmt->columns->at(3)->type, ColumnDefinition::DOUBLE);
 }
 
+TEST(CreateIndexStatementTest) {
+	SQLStatementList* stmt_list = SQLParser::parseSQLString("CREATE INDEX student_ix ON students (name);CREATE GROUPKEY INDEX student_ix ON students (name, student_number)");
+	ASSERT(stmt_list->isValid);
+	ASSERT_EQ(stmt_list->numStatements(), 2);
+	ASSERT_EQ(stmt_list->getStatement(0)->type(), kStmtCreate);
+	ASSERT_EQ(stmt_list->getStatement(1)->type(), kStmtCreate);
+
+	CreateStatement* stmt = (CreateStatement*) stmt_list->getStatement(0);
+	ASSERT_EQ(stmt->type, CreateStatement::kIndex);
+	ASSERT_EQ(stmt->index_type, CreateStatement::kDefaultIndex);
+	ASSERT_STREQ(stmt->table_name, "students");
+	ASSERT_NOTNULL(stmt->index_columns);
+	ASSERT_EQ(stmt->index_columns->size(), 1);
+	ASSERT_STREQ(stmt->index_columns->at(0), "name");
+
+	stmt = (CreateStatement*) stmt_list->getStatement(1);
+	ASSERT_EQ(stmt->type, CreateStatement::kIndex);
+	ASSERT_EQ(stmt->index_type, CreateStatement::kGroupKeyIndex);
+	ASSERT_STREQ(stmt->table_name, "students");
+	ASSERT_NOTNULL(stmt->index_columns);
+	ASSERT_EQ(stmt->index_columns->size(), 2);
+	ASSERT_STREQ(stmt->index_columns->at(0), "name");
+	ASSERT_STREQ(stmt->index_columns->at(1), "student_number");
+}
+
+
 
 TEST(UpdateStatementTest) {
 	SQLStatementList* stmt_list = SQLParser::parseSQLString("UPDATE students SET grade = 5.0, name = 'test' WHERE name = 'Max Mustermann';");
@@ -55,7 +81,7 @@ TEST(UpdateStatementTest) {
 	UpdateStatement* stmt = (UpdateStatement*) stmt_list->getStatement(0);
 	ASSERT_NOTNULL(stmt->table);
 	ASSERT_STREQ(stmt->table->name, "students");
-	
+
 	ASSERT_NOTNULL(stmt->updates);
 	ASSERT_EQ(stmt->updates->size(), 2);
 	ASSERT_STREQ(stmt->updates->at(0)->column, "grade");
@@ -91,6 +117,15 @@ TEST(DropTableStatementTest) {
 }
 
 
+TEST(DropIndexStatementTest) {
+	TEST_PARSE_SINGLE_SQL("DROP INDEX student_ix", kStmtDrop, DropStatement, stmt);
+
+	ASSERT_EQ(stmt->type, DropStatement::kIndex);
+	ASSERT_NOTNULL(stmt->name);
+	ASSERT_STREQ(stmt->name, "student_ix");
+}
+
+
 TEST(PrepareStatementTest) {
 	std::string query = "PREPARE test {"
 		"INSERT INTO test VALUES(?);"
@@ -109,7 +144,7 @@ TEST(PrepareStatementTest) {
 	ASSERT_STREQ(prep1->name, "test");
 	ASSERT_EQ(prep1->placeholders.size(), 3);
 	ASSERT_EQ(prep1->query->numStatements(), 2);
-	
+
 	TEST_CAST_STMT(prep1->query, 0, kStmtInsert, InsertStatement, insert);
 	TEST_CAST_STMT(prep1->query, 1, kStmtSelect, SelectStatement, select);
 
